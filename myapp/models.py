@@ -7,7 +7,6 @@ from django.contrib.auth.models import User
 class Todo(models.Model):
     title=models.CharField(max_length=200)
     created_date=models.DateField(auto_now_add=True,blank=True)
-    user=models.CharField(max_length=200)
     options=(
         ("completed","completed"),
         ("pending","pending"),

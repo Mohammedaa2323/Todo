@@ -4,7 +4,18 @@ from myapp.models import Todo
 from django.views.generic import View
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate,login,logout
+from django.utils.decorators import method_decorator
+from django.contrib import messages
 # Create your views here.
+
+def signin_required(fn):
+    def wrapper(request,*args,**kwargs):
+         if not request.user.is_authenticated:
+             messages.error(request,"invalid session")
+             return redirect("signin")
+         else:
+             return fn(request,*args,**kwargs)
+    return wrapper
 
 #         form of todo
 
@@ -16,6 +27,7 @@ class TodoForm(forms.ModelForm):
 
 #       todo list 
         
+@method_decorator(signin_required,name="dispatch")
 
 class TodoListView(View):
     def get(self,request,*args,**kwargs):
@@ -23,6 +35,8 @@ class TodoListView(View):
         return render(request,"todo_list.html",{"data":qs})
     
 #         todo creating
+@method_decorator(signin_required,name="dispatch")
+
 class TodocreateView(View):
     def get(self,request,*args,**kwargs):
         form=TodoForm()
@@ -38,6 +52,7 @@ class TodocreateView(View):
          return render(request,"todo_add.html",{"form":form})
 
 #         todo detail
+@method_decorator(signin_required,name="dispatch")
 
 class TodoDetailView(View):
     def get(self,request,*args,**kwargs):
@@ -47,15 +62,20 @@ class TodoDetailView(View):
 
 
 #          delete view
+@method_decorator(signin_required,name="dispatch")
+
 class TodoDeleteView(View):
     def get(self,request,*args,**kwargs):
         id=kwargs.get("pk")
         Todo.objects.get(id=id).delete()
+        messages.success(request,"transaction deleted successfully")
+
         return redirect("todo-list")
     
 
 
 #       update view
+@method_decorator(signin_required,name="dispatch")
 
 class TodoUpdateView(View):
     def get(self,request,*args,**kwargs):
@@ -78,6 +98,13 @@ class RegistrationForm(forms.ModelForm):
     class Meta:
         model=User
         fields=["username","email","password"]
+        widgets={
+            "username":forms.TextInput(attrs={"class":"form-control"}),
+            "email":forms.EmailInput(attrs={"class":"form-control"}),
+                        "password":forms.PasswordInput(attrs={"class":"form-control"})
+
+
+        }
 
 class SignupView(View):
     def get(self,request,*args,**kwargs):
@@ -96,8 +123,8 @@ class SignupView(View):
 #       login form
         
 class LoginForm(forms.Form):
-    username=forms.CharField()
-    password=forms.CharField()
+    username=forms.CharField(widget=forms.TextInput(attrs={"class":"form-control"}))
+    password=forms.CharField(widget=forms.PasswordInput(attrs={"class":"form-control"}))
 
 #       signup view
 
@@ -118,6 +145,7 @@ class SigninView(View):
         print("invalid")
         return render(request,"signin.html",{"form":form})
 
+@method_decorator(signin_required,name="dispatch")
 
 class SignoutView(View):
     def get(self,request,*args,**kwargs):
